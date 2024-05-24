@@ -1,4 +1,4 @@
-package oracle
+package aleo_oracle_sdk
 
 import (
 	"context"
@@ -10,10 +10,14 @@ func Example() {
 	// First, we configure the client
 	config := &ClientConfig{
 		NotarizerConfig: &CustomBackendConfig{
-			URL: "https://sgx.aleooracle.xyz",
+			Address: "sgx.aleooracle.xyz",
+			HTTPS:   true,
+			Resolve: true,
 		},
 		VerifierConfig: &CustomBackendConfig{
-			URL: "https://verifier.aleooracle.xyz",
+			Address: "verifier.aleooracle.xyz",
+			HTTPS:   true,
+			Resolve: false,
 		},
 		Logger: log.Default(),
 	}

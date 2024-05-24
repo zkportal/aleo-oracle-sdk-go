@@ -1,11 +1,9 @@
-package oracle
+package aleo_oracle_sdk
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -77,7 +75,6 @@ func (e *EnclaveInfo) UnmarshalJSON(b []byte) error {
 		e.SgxInfo = new(SgxInfo)
 		err := json.Unmarshal(infoBytes, e.SgxInfo)
 		if err != nil {
-			log.Println(err)
 			return errors.New("sgx enclave provided unexpected self report")
 		}
 
@@ -114,8 +111,15 @@ func (c *Client) GetEnclavesInfo(options *EnclaveInfoOptions) ([]*EnclaveInfo, [
 	errChan := make(chan error, numServices)
 
 	for _, serviceConfig := range c.notarizer {
-		resChanMap[serviceConfig.URL] = make(chan *EnclaveInfo, 1)
-		go executeRequest[interface{}, EnclaveInfo](&wg, resChanMap[serviceConfig.URL], errChan, c.client, options.Context, http.MethodGet, fmt.Sprintf("%s/info", serviceConfig.URL), nil)
+		resChanMap[serviceConfig.Address] = make(chan *EnclaveInfo, 1)
+		go executeRequest[interface{}, EnclaveInfo](
+			"/info",
+			&requestContext{Ctx: options.Context, Method: http.MethodGet, Backend: serviceConfig, Transport: c.transport},
+			nil,
+			&wg,
+			resChanMap[serviceConfig.Address],
+			errChan,
+		)
 	}
 
 	wg.Wait()
