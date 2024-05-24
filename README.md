@@ -1,5 +1,7 @@
 # Oracle SDK for Golang
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/zkportal/aleo-oracle-sdk-go.svg)](https://pkg.go.dev/github.com/zkportal/aleo-oracle-sdk-go)
+
 This repository contains a Golang client SDK for Aleo Oracle.
 
 For documentation, see [docs.aleooracle.xyz](https://docs.aleooracle.xyz).

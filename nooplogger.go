@@ -1,4 +1,4 @@
-package oracle
+package aleo_oracle_sdk
 
 import (
 	"io"

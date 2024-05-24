@@ -33,7 +33,7 @@
 // [Aleo's SnarkVM]: https://developer.aleo.org/aleo
 // [notarization backends]: https://github.com/summitto/oracle-notarization-backend
 // [verified locally and remotely]: https://github.com/summitto/oracle-verification-backend
-package oracle
+package aleo_oracle_sdk
 
 import (
 	"context"
@@ -373,7 +373,7 @@ func (c *Client) Notarize(req *AttestationRequest, options *NotarizationOptions)
 		return nil, []error{fmt.Errorf("attestation report verification failed: %w", err)}
 	}
 
-	c.logger.Println("Attestations verified by", c.verifier.URL)
+	c.logger.Println("Attestations verified by", getFullAddress("", c.verifier, nil))
 
 	return attestations, nil
 }
@@ -406,8 +406,15 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 	}
 
 	for _, serviceConfig := range c.notarizer {
-		resChanMap[serviceConfig.URL] = make(chan *AttestationResponse, 1)
-		go executeRequest(&wg, resChanMap[serviceConfig.URL], errChan, c.client, ctx, http.MethodPost, fmt.Sprintf("%s/notarize", serviceConfig.URL), reqMessage)
+		resChanMap[serviceConfig.Address] = make(chan *AttestationResponse, 1)
+		go executeRequest(
+			"/notarize",
+			&requestContext{Ctx: ctx, Method: http.MethodPost, Backend: serviceConfig, Transport: c.transport},
+			reqMessage,
+			&wg,
+			resChanMap[serviceConfig.Address],
+			errChan,
+		)
 	}
 
 	wg.Wait()
@@ -446,7 +453,6 @@ type verifyResponse struct {
 
 func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationResponse) error {
 	var wg sync.WaitGroup
-	wg.Add(1)
 
 	resChan := make(chan *verifyResponse, 1)
 	errChan := make(chan error, 1)
@@ -455,7 +461,15 @@ func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationR
 		Reports: attestations,
 	}
 
-	go executeRequest[verifyRequest, verifyResponse](&wg, resChan, errChan, c.client, ctx, http.MethodPost, fmt.Sprintf("%s/verify", c.verifier.URL), verifyMessage)
+	wg.Add(1)
+	go executeRequest(
+		"/verify",
+		&requestContext{Ctx: ctx, Method: http.MethodPost, Backend: c.verifier, Transport: c.transport},
+		verifyMessage,
+		&wg,
+		resChan,
+		errChan,
+	)
 
 	wg.Wait()
 
@@ -530,8 +544,16 @@ func (c *Client) TestSelector(req *AttestationRequest, options *TestSelectorOpti
 	errChan := make(chan error, numServices)
 
 	for _, serviceConfig := range c.notarizer {
-		resChanMap[serviceConfig.URL] = make(chan *TestSelectorResponse, 1)
-		go executeRequest(&wg, resChanMap[serviceConfig.URL], errChan, c.client, options.Context, http.MethodPost, fmt.Sprintf("%s/notarize", serviceConfig.URL), reqMessage)
+		resChanMap[serviceConfig.Address] = make(chan *TestSelectorResponse, 1)
+
+		go executeRequest(
+			"/notarize",
+			&requestContext{Ctx: options.Context, Method: http.MethodPost, Backend: serviceConfig, Transport: c.transport},
+			reqMessage,
+			&wg,
+			resChanMap[serviceConfig.Address],
+			errChan,
+		)
 	}
 
 	wg.Wait()
