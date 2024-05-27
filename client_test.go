@@ -17,7 +17,7 @@ func Example() {
 		VerifierConfig: &CustomBackendConfig{
 			Address: "verifier.aleooracle.xyz",
 			HTTPS:   true,
-			Resolve: false,
+			Resolve: true,
 		},
 		Logger: log.Default(),
 	}
