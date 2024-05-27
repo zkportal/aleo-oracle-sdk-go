@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] - 27.05.2024
+
+### Fixed
+
+- Verification returning an error when it's resolved after using resolved notarizer
+
 ## [1.1.0] - 24.05.2024
 
 ### Added

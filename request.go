@@ -213,7 +213,14 @@ func executeRequest[RequestType interface{}, ResponseType interface{}](path stri
 		transportRaw.TLSClientConfig = &tls.Config{}
 	}
 
+	// Set SNI for routing
 	transportRaw.TLSClientConfig.ServerName = ctx.Backend.Address
+	// Since our infrastructure performs routing on TCP level to the notarizer, which then upgrades
+	// protocol to HTTP, changing the SNI to verifier.aleooracle.xyz doesn't actually reroute us to the verifier
+	// because we're stuck in the notarizer's HTTP connection. Disabling HTTP "keep alive"s allows the proxy
+	// to escape the notarizer's HTTP connection and route again on TCP level to the verifier's HTTP server.
+	// This wasn't relevant when resolving was disabled for the verifier.
+	transportRaw.DisableKeepAlives = true
 
 	transport = transportRaw
 
