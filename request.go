@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 )
 
@@ -167,8 +168,8 @@ func executeRequestInternal[ResponseType interface{}](ctx context.Context, req *
 
 	// check if cancelled
 	select {
-	case resChan <- resp:
 	case <-ctx.Done():
+	case resChan <- resp:
 	}
 }
 
@@ -294,7 +295,17 @@ func executeRequest[RequestType interface{}, ResponseType interface{}](path stri
 	}
 
 	// forward errors to the external channel
+	// collect all unique errors, join them with ; and return as one error
+	errMap := make(map[error]bool)
+
 	for err := range errorsInternalCh {
-		errChan <- fmt.Errorf("executeRequest: %w: %s", basicRequestErr, err)
+		errMap[err] = true
 	}
+
+	errList := make([]string, 0, len(errMap))
+	for err := range errMap {
+		errList = append(errList, fmt.Sprintf("executeRequest: %s: %s", basicRequestErr, err))
+	}
+
+	errChan <- fmt.Errorf("%s", strings.Join(errList, "; "))
 }

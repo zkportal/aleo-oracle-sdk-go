@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.2] - 03.06.2024
+
+### Fixed
+
+- Client hanging when handling multiple notarization errors under certain conditions
+
 ## [1.1.1] - 27.05.2024
 
 ### Fixed
