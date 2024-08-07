@@ -38,6 +38,6 @@ type ClientConfig struct {
 	// Optional Client logger. No logs will be used if not provided.
 	Logger *log.Logger
 
-	// Optional transport configuration. If not provided, the [http.DefaultTransport] will be used.
+	// Optional transport configuration. If not provided, the a transport similar to [http.DefaultTransport] will be used.
 	Transport http.RoundTripper
 }
