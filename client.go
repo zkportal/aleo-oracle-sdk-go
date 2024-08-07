@@ -2,7 +2,9 @@ package aleo_oracle_sdk
 
 import (
 	"log"
+	"net"
 	"net/http"
+	"time"
 )
 
 const (
@@ -19,7 +21,7 @@ type Client struct {
 
 // NewClient creates a new client using the provided configuration. Configuration is optional.
 // If configuration is not provided, will use 1 notarizer and a verifier hosted by the developers,
-// no logging, [http.DefaultTransport] for transport.
+// no logging, a transport similar to [http.DefaultTransport] for transport.
 func NewClient(config *ClientConfig) (*Client, error) {
 	client := new(Client)
 
@@ -57,7 +59,18 @@ func NewClient(config *ClientConfig) (*Client, error) {
 	if config.Transport != nil {
 		client.transport = config.Transport
 	} else {
-		client.transport = http.DefaultTransport
+		dialer := &net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}
+		client.transport = &http.Transport{
+			DialContext:           dialer.DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}
 	}
 
 	return client, nil

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.4] - 07.08.2024
+
+### Fixed
+
+- Don't use `http.DefaultTransport` at all
+
 ## [1.1.3] - 07.08.2024
 
 ### Fixed
