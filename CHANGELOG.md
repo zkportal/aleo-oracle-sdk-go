@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.3] - 07.08.2024
+
+### Fixed
+
+- Client's TLS config bleeding into `http.DefaultClient`
+
 ## [1.1.2] - 03.06.2024
 
 ### Fixed
