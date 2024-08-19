@@ -1,6 +1,8 @@
 package aleo_oracle_sdk
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// Request timeout used by default for Client's methods
@@ -8,8 +10,15 @@ const (
 )
 
 var (
+	DEFAULT_NOTARIZATION_OPTIONS = &NotarizationOptions{
+		AttestationContext:  nil,
+		VerificationContext: nil,
+		DataShouldMatch:     true,
+		MaxTimeDeviation:    nil,
+	}
+
 	DEFAULT_NOTARIZATION_BACKENDS = []*CustomBackendConfig{
-		&CustomBackendConfig{
+		{
 			Address:   "sgx.aleooracle.xyz",
 			Port:      443,
 			HTTPS:     true,

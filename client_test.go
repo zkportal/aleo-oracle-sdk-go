@@ -3,6 +3,7 @@ package aleo_oracle_sdk
 import (
 	"context"
 	"log"
+	"math/big"
 	"net/http"
 )
 
@@ -27,6 +28,16 @@ func Example() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	attestedRandoms, errList := client.GetAttestedRandom(big.NewInt(43), nil)
+	if errList != nil {
+		log.Fatalln(errList)
+	}
+
+	// The URL was notarized, the extracted result was attested by the enclaves, enclave signatures were verified by the verifier, you can now use the data
+	log.Println()
+	log.Println("Data extracted from the URL using the selector:", attestedRandoms[0].AttestationData)
+	log.Println()
 
 	// Fetch enclave info for all attesters
 	infoList, errList := client.GetEnclavesInfo(nil)

@@ -42,7 +42,7 @@ func NewClient(config *ClientConfig) (*Client, error) {
 	if config.NotarizerConfig != nil {
 		client.notarizer = make([]*CustomBackendConfig, 1)
 		client.notarizer[0] = config.NotarizerConfig
-		client.logger.Println("Oracle Client: using custom notarizer -", getFullAddress("", config.NotarizerConfig, nil))
+		client.logger.Println("Oracle Client: using custom notarizer -", getFullAddress("", nil, config.NotarizerConfig, nil))
 	} else {
 		client.notarizer = DEFAULT_NOTARIZATION_BACKENDS
 	}
@@ -51,7 +51,7 @@ func NewClient(config *ClientConfig) (*Client, error) {
 	// Use default verification backend if the configuration is missing.
 	if config.VerifierConfig != nil {
 		client.verifier = config.VerifierConfig
-		client.logger.Println("Oracle Client: using custom verifier -", getFullAddress("", config.VerifierConfig, nil))
+		client.logger.Println("Oracle Client: using custom verifier -", getFullAddress("", nil, config.VerifierConfig, nil))
 	} else {
 		client.verifier = DEFAULT_VERIFICATION_BACKEND
 	}

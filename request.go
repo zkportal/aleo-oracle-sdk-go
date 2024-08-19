@@ -30,8 +30,16 @@ type requestContext struct {
 
 // Builds a URL using the backend information, path, and optionally resolved IP address.
 // Do not use with queries, they will be escaped
-func getFullAddress(path string, backend *CustomBackendConfig, ip *string) string {
+func getFullAddress(path string, queryParams map[string]string, backend *CustomBackendConfig, ip *string) string {
 	full := new(url.URL)
+
+	if queryParams != nil {
+		query := make(url.Values)
+		for key, val := range queryParams {
+			query.Set(key, val)
+		}
+		full.RawQuery = query.Encode()
+	}
 
 	if backend.HTTPS {
 		full.Scheme = "https"
@@ -61,11 +69,11 @@ func getFullAddress(path string, backend *CustomBackendConfig, ip *string) strin
 	return full.String()
 }
 
-func constructHttpRequest(ctx *requestContext, path string, ip *string, reqBody []byte) (*http.Request, error) {
+func constructHttpRequest(ctx *requestContext, path string, queryParams map[string]string, ip *string, reqBody []byte) (*http.Request, error) {
 	httpReq := new(http.Request)
 	var err error
 
-	reqUrl := getFullAddress(path, ctx.Backend, ip)
+	reqUrl := getFullAddress(path, queryParams, ctx.Backend, ip)
 
 	if ctx.Method == http.MethodGet {
 		httpReq, err = http.NewRequestWithContext(ctx.Ctx, ctx.Method, reqUrl, nil)
@@ -179,13 +187,13 @@ func executeRequestInternal[ResponseType interface{}](ctx context.Context, req *
 //
 // Sets "Content-Type: application/json" header for all requests. Non-2xx status code is handled as an error. The body may contain an
 // error object, which is returned in errChan when possible.
-func executeRequest[RequestType interface{}, ResponseType interface{}](path string, ctx *requestContext, req *RequestType, wg *sync.WaitGroup, resChan chan *ResponseType, errChan chan error) {
+func executeRequest[RequestType interface{}, ResponseType interface{}](path string, queryParams map[string]string, ctx *requestContext, req *RequestType, wg *sync.WaitGroup, resChan chan *ResponseType, errChan chan error) {
 	defer wg.Done()
 
 	var err error
 
-	host := getFullAddress("", ctx.Backend, nil)
-	basicRequestErr := errors.New(getFullAddress(path, ctx.Backend, nil))
+	host := getFullAddress("", nil, ctx.Backend, nil)
+	basicRequestErr := errors.New(getFullAddress(path, queryParams, ctx.Backend, nil))
 
 	var resolvedAddresses []string
 	resolved := false
@@ -262,7 +270,7 @@ func executeRequest[RequestType interface{}, ResponseType interface{}](path stri
 			usedIp = &address
 		}
 
-		httpReq, err := constructHttpRequest(internalCtx, path, usedIp, reqBody)
+		httpReq, err := constructHttpRequest(internalCtx, path, queryParams, usedIp, reqBody)
 		if err != nil {
 			errChan <- fmt.Errorf("executeRequest: failed to create a request for %w: %w", basicRequestErr, err)
 			return

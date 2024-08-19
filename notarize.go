@@ -42,7 +42,6 @@ import (
 	"net/http"
 	"slices"
 	"sync"
-	"time"
 )
 
 // The expected type of value that should be used to interpret Attestation Data to encode it to Aleo format (to be used in an Aleo program).
@@ -299,17 +298,12 @@ type AttestationResponse struct {
 func (c *Client) Notarize(req *AttestationRequest, options *NotarizationOptions) ([]*AttestationResponse, []error) {
 	// configure default options
 	if options == nil {
-		options = &NotarizationOptions{
-			AttestationContext:  nil,
-			VerificationContext: nil,
-			DataShouldMatch:     true,
-			MaxTimeDeviation:    nil,
-		}
+		options = DEFAULT_NOTARIZATION_OPTIONS
 	}
 
 	// configure default attestation timeout context
 	if options.AttestationContext == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_TIMEOUT)
 		defer cancel()
 
 		options.AttestationContext = ctx
@@ -328,52 +322,25 @@ func (c *Client) Notarize(req *AttestationRequest, options *NotarizationOptions)
 	}
 	c.logger.Printf("Notarize: notarized and attested %s using %d attesters", req.URL, len(c.notarizer))
 
-	// can't do time deviation and integrity checks with only one attestation
-	if len(attestations) > 1 {
-		// do some basic client side validation
-		firstAttestation := attestations[0]
-
-		attestationTimestamps := make([]int64, len(attestations))
-		attestationTimestamps[0] = firstAttestation.Timestamp
-
-		for _, att := range attestations[1:] {
-			if options.DataShouldMatch && att.AttestationData != firstAttestation.AttestationData {
-				return nil, []error{errors.New("attestation data mismatch")}
-			}
-
-			// save the timestamps to check for time deviation of all attestations
-			attestationTimestamps = append(attestationTimestamps, att.Timestamp)
-		}
-
-		if options.MaxTimeDeviation != nil {
-			// warn the user that it's not recommended to have a deviation less than 10ms or more than 10s
-			if *options.MaxTimeDeviation < 10 || *options.MaxTimeDeviation > 10*1000 {
-				c.logger.Printf("Notarize: WARNING max time deviation for attestation of %dms is not recommended", *options.MaxTimeDeviation)
-			}
-
-			slices.Sort(attestationTimestamps)
-			// test that all attestations were done within the allowed deviation.
-			// the difference between the soonest and latest timestamps shouldn't be more than the configured deviation
-			if attestationTimestamps[len(attestations)-1]-attestationTimestamps[0] > *options.MaxTimeDeviation {
-				return nil, []error{errors.New("attestation timestamps deviate too much")}
-			}
-		}
+	err := c.handleAttestations(attestations, options)
+	if err != nil {
+		return nil, []error{err}
 	}
 
 	// configure default verification timeout context
 	if options.VerificationContext == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_TIMEOUT)
 		defer cancel()
 
 		options.VerificationContext = ctx
 	}
 
-	err := c.verifyReports(options.VerificationContext, attestations)
+	err = c.verifyReports(options.VerificationContext, attestations)
 	if err != nil {
 		return nil, []error{fmt.Errorf("attestation report verification failed: %w", err)}
 	}
 
-	c.logger.Println("Attestations verified by", getFullAddress("", c.verifier, nil))
+	c.logger.Println("Attestations verified by", getFullAddress("", nil, c.verifier, nil))
 
 	return attestations, nil
 }
@@ -409,6 +376,7 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 		resChanMap[serviceConfig.Address] = make(chan *AttestationResponse, 1)
 		go executeRequest(
 			"/notarize",
+			nil,
 			&requestContext{Ctx: ctx, Method: http.MethodPost, Backend: serviceConfig, Transport: c.transport},
 			reqMessage,
 			&wg,
@@ -443,6 +411,44 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 	return result, nil
 }
 
+func (c *Client) handleAttestations(attestations []*AttestationResponse, options *NotarizationOptions) error {
+	// can't do time deviation and integrity checks with only one attestation
+	if len(attestations) < 1 {
+		return nil
+	}
+
+	// do some basic client side validation
+	firstAttestation := attestations[0]
+
+	attestationTimestamps := make([]int64, len(attestations))
+	attestationTimestamps[0] = firstAttestation.Timestamp
+
+	for _, att := range attestations[1:] {
+		if options.DataShouldMatch && att.AttestationData != firstAttestation.AttestationData {
+			return errors.New("attestation data mismatch")
+		}
+
+		// save the timestamps to check for time deviation of all attestations
+		attestationTimestamps = append(attestationTimestamps, att.Timestamp)
+	}
+
+	if options.MaxTimeDeviation != nil {
+		// warn the user that it's not recommended to have a deviation less than 10ms or more than 10s
+		if *options.MaxTimeDeviation < 10 || *options.MaxTimeDeviation > 10*1000 {
+			c.logger.Printf("Notarize: WARNING max time deviation for attestation of %dms is not recommended", *options.MaxTimeDeviation)
+		}
+
+		slices.Sort(attestationTimestamps)
+		// test that all attestations were done within the allowed deviation.
+		// the difference between the soonest and latest timestamps shouldn't be more than the configured deviation
+		if attestationTimestamps[len(attestations)-1]-attestationTimestamps[0] > *options.MaxTimeDeviation {
+			return errors.New("attestation timestamps deviate too much")
+		}
+	}
+
+	return nil
+}
+
 type verifyRequest struct {
 	Reports []*AttestationResponse `json:"reports"`
 }
@@ -464,6 +470,7 @@ func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationR
 	wg.Add(1)
 	go executeRequest(
 		"/verify",
+		nil,
 		&requestContext{Ctx: ctx, Method: http.MethodPost, Backend: c.verifier, Transport: c.transport},
 		verifyMessage,
 		&wg,
@@ -529,7 +536,7 @@ func (c *Client) TestSelector(req *AttestationRequest, options *TestSelectorOpti
 	}
 
 	if options.Context == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), DEFAULT_TIMEOUT)
 		defer cancel()
 
 		options.Context = ctx
@@ -548,6 +555,7 @@ func (c *Client) TestSelector(req *AttestationRequest, options *TestSelectorOpti
 
 		go executeRequest(
 			"/notarize",
+			nil,
 			&requestContext{Ctx: options.Context, Method: http.MethodPost, Backend: serviceConfig, Transport: c.transport},
 			reqMessage,
 			&wg,
