@@ -114,6 +114,7 @@ func (c *Client) GetEnclavesInfo(options *EnclaveInfoOptions) ([]*EnclaveInfo, [
 		resChanMap[serviceConfig.Address] = make(chan *EnclaveInfo, 1)
 		go executeRequest[interface{}, EnclaveInfo](
 			"/info",
+			nil,
 			&requestContext{Ctx: options.Context, Method: http.MethodGet, Backend: serviceConfig, Transport: c.transport},
 			nil,
 			&wg,
