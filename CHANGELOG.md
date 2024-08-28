@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 28.08.2024
+
+### Added
+
+- New client method `GetAttestedRandom` for getting attested random numbers
+
 ## [1.1.4] - 07.08.2024
 
 ### Fixed
