@@ -253,6 +253,9 @@ type OracleData struct {
 
 	// Poseidon8 hash of the EncodedRequest. Can be used to verify in an Aleo program that the report was made with the correct request.
 	RequestHash string `json:"requestHash"`
+
+	// Poseidon8 hash of the RequestHash with the attestation timestamp. Can be used to verify in an Aleo program that the report was made with the correct request.
+	TimestampedRequestHash string `json:"timestampedRequestHash"`
 }
 
 // AttestationResponse is notarization backend's response to an attestation request
