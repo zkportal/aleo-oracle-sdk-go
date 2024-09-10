@@ -221,6 +221,13 @@ type ProofPositionalInfo struct {
 	OptionalFields  PositionInfo `json:"optionalFields"` // Optional fields are HTML result type, request content type, request body. They're all encoded together.
 }
 
+type NitroReportExtras struct {
+	Pcr0Pos     string `json:"pcr0Pos"`
+	Pcr1Pos     string `json:"pcr1Pos"`
+	Pcr2Pos     string `json:"pcr2Pos"`
+	UserDataPos string `json:"userDataPos"`
+}
+
 // OracleData contains information that can be used in your Aleo program. All fields are encoded to Aleo-compatible formats and represented as strings.
 type OracleData struct {
 	// Schnorr signature of a verified Attestation Report.
@@ -256,6 +263,11 @@ type OracleData struct {
 
 	// Poseidon8 hash of the RequestHash with the attestation timestamp. Can be used to verify in an Aleo program that the report was made with the correct request.
 	TimestampedRequestHash string `json:"timestampedRequestHash"`
+
+	// Object containing extra information about the attestation report.
+	// If the attestation type is "nitro", it contains Aleo-encoded structs with
+	// information that helps to extract user data and PCR values from the report.
+	ReportExtras *NitroReportExtras `json:"reportExtras"`
 }
 
 // AttestationResponse is notarization backend's response to an attestation request

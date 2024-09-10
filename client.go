@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	REPORT_TYPE_SGX = "sgx"
+	REPORT_TYPE_SGX   = "sgx"
+	REPORT_TYPE_NITRO = "nitro"
 )
 
 // Aleo Oracle client.
