@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.0] - 19.09.2024
+
+### Breaking
+
+- Changes in `SgxInfo` type
+
+### Added
+
+- `OracleData.ReportExtras` optional field with some extra encoding information about the attestation report
+
 ## [1.2.0] - 28.08.2024
 
 ### Added
