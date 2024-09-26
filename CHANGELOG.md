@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.1] - 26.09.2024
+
+### Fixed
+
+- Change Go module name to github.com/zkportal/aleo-oracle-sdk-go/v2
+
 ## [2.0.0] - 19.09.2024
 
 ### Breaking
