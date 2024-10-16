@@ -413,7 +413,10 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 			reqErrors = append(reqErrors, err)
 		}
 
-		return nil, reqErrors
+		// all requests have failed
+		if len(reqErrors) == len(c.notarizer) {
+			return nil, reqErrors
+		}
 	}
 
 	var result []*AttestationResponse
