@@ -41,6 +41,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"sync"
 )
 
@@ -350,14 +351,14 @@ func (c *Client) Notarize(req *AttestationRequest, options *NotarizationOptions)
 		options.VerificationContext = ctx
 	}
 
-	err = c.verifyReports(options.VerificationContext, attestations)
+	validAttestations, err := c.verifyReports(options.VerificationContext, attestations)
 	if err != nil {
 		return nil, []error{fmt.Errorf("attestation report verification failed: %w", err)}
 	}
 
 	c.logger.Println("Attestations verified by", getFullAddress("", nil, c.verifier, nil))
 
-	return attestations, nil
+	return validAttestations, nil
 }
 
 type attestationRequestMessage struct {
@@ -414,7 +415,7 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 		}
 
 		// all requests have failed
-		if len(reqErrors) == len(c.notarizer) {
+		if len(reqErrors) == numServices {
 			return nil, reqErrors
 		}
 	}
@@ -471,11 +472,11 @@ type verifyRequest struct {
 	Reports []*AttestationResponse `json:"reports"`
 }
 type verifyResponse struct {
-	Success      bool   `json:"success"`
-	ErrorMessage string `json:"errorMessage"`
+	ValidReports  []int    `json:"validReports"`
+	ErrorMessages []string `json:"errorMessages"`
 }
 
-func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationResponse) error {
+func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationResponse) ([]*AttestationResponse, error) {
 	var wg sync.WaitGroup
 
 	resChan := make(chan *verifyResponse, 1)
@@ -503,16 +504,28 @@ func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationR
 
 	if len(errChan) > 0 {
 		err := <-errChan
-		return err
+		return nil, err
 	}
 
 	result := <-resChan
 
-	if !result.Success {
-		return errors.New(result.ErrorMessage)
+	if len(result.ValidReports) == 0 {
+		combinedErrMessage := strings.Join(result.ErrorMessages, "; ")
+		return nil, errors.New(combinedErrMessage)
 	}
 
-	return nil
+	var validAttestations []*AttestationResponse
+	for i, attestation := range attestations {
+		if slices.Contains(result.ValidReports, i) {
+			validAttestations = append(validAttestations, attestation)
+		}
+	}
+
+	if len(validAttestations) == 0 {
+		return nil, errors.New("no valid attestations found")
+	}
+
+	return validAttestations, nil
 }
 
 // TestSelector response, which contains information for debugging selectors for extracting AttestationData for calling Notarize.

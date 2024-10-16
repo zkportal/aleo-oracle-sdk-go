@@ -94,12 +94,12 @@ func (c *Client) GetAttestedRandom(max *big.Int, options *NotarizationOptions) (
 		options.VerificationContext = ctx
 	}
 
-	err = c.verifyReports(options.VerificationContext, attestations)
+	validAttestations, err := c.verifyReports(options.VerificationContext, attestations)
 	if err != nil {
 		return nil, []error{fmt.Errorf("attestation report verification failed: %w", err)}
 	}
 
 	c.logger.Println("Attestations verified by", getFullAddress("", nil, c.verifier, nil))
 
-	return attestations, nil
+	return validAttestations, nil
 }
