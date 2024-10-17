@@ -214,7 +214,10 @@ func (c *Client) GetEnclavesInfo(options *EnclaveInfoOptions) ([]*EnclaveInfo, [
 			reqErrors = append(reqErrors, err)
 		}
 
-		return nil, reqErrors
+		// all request have failed
+		if len(reqErrors) == numServices {
+			return nil, reqErrors
+		}
 	}
 
 	var info []*EnclaveInfo
