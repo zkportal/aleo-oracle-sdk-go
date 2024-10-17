@@ -63,13 +63,16 @@ func (c *Client) GetAttestedRandom(max *big.Int, options *NotarizationOptions) (
 
 	// one or more of the requests have failed
 	if len(errChan) > 0 {
-		var errs []error
+		var reqErrors []error
 		for err := range errChan {
-			errs = append(errs, err)
+			reqErrors = append(reqErrors, err)
 			c.logger.Println("failed to create attestation:", err)
 		}
 
-		return nil, errs
+		// all request have failed
+		if len(reqErrors) == numServices {
+			return nil, reqErrors
+		}
 	}
 
 	var attestations []*AttestationResponse

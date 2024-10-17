@@ -432,7 +432,7 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 
 func (c *Client) handleAttestations(attestations []*AttestationResponse, options *NotarizationOptions) error {
 	// can't do time deviation and integrity checks with only one attestation
-	if len(attestations) < 1 {
+	if len(attestations) < 2 {
 		return nil
 	}
 
