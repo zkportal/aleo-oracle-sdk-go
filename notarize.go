@@ -41,7 +41,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strings"
 	"sync"
 )
 
@@ -472,8 +471,8 @@ type verifyRequest struct {
 	Reports []*AttestationResponse `json:"reports"`
 }
 type verifyResponse struct {
-	ValidReports  []int    `json:"validReports"`
-	ErrorMessages []string `json:"errorMessages"`
+	ValidReports []int  `json:"validReports"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationResponse) ([]*AttestationResponse, error) {
@@ -510,8 +509,7 @@ func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationR
 	result := <-resChan
 
 	if len(result.ValidReports) == 0 {
-		combinedErrMessage := strings.Join(result.ErrorMessages, "; ")
-		return nil, errors.New(combinedErrMessage)
+		return nil, errors.New(result.ErrorMessage)
 	}
 
 	var validAttestations []*AttestationResponse
