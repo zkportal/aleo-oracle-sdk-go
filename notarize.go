@@ -305,7 +305,7 @@ type AttestationResponse struct {
 	AttestationRequest *AttestationRequest `json:"attestationRequest"`
 }
 
-// Notarize requests attestation of data extracted from the provided URL using the provided selector. Attestation is created by one or more Trusted Execution Environments (TEE). If more than one is used, all attestation requests should succeed.
+// Notarize requests attestation of data extracted from the provided URL using the provided selector. Attestation is created by one or more Trusted Execution Environments (TEE). Returns all successfully produced and verified attestations and discards the invalid ones.
 //
 // It is highly recommended to use time insensitive historic data for notarization. In case of using live data, other people might see different results when requesting the same url with the same parameters.
 //
@@ -606,7 +606,10 @@ func (c *Client) TestSelector(req *AttestationRequest, options *TestSelectorOpti
 			reqErrors = append(reqErrors, err)
 		}
 
-		return nil, reqErrors
+		// all requests have failed
+		if len(reqErrors) == numServices {
+			return nil, reqErrors
+		}
 	}
 
 	var result []*TestSelectorResponse
