@@ -305,7 +305,7 @@ type AttestationResponse struct {
 	AttestationRequest *AttestationRequest `json:"attestationRequest"`
 }
 
-// Notarize requests attestation of data extracted from the provided URL using the provided selector. Attestation is created by one or more Trusted Execution Environments (TEE). If more than one is used, all attestation requests should succeed.
+// Notarize requests attestation of data extracted from the provided URL using the provided selector. Attestation is created by one or more Trusted Execution Environments (TEE). Returns all successfully produced and verified attestations and discards the invalid ones.
 //
 // It is highly recommended to use time insensitive historic data for notarization. In case of using live data, other people might see different results when requesting the same url with the same parameters.
 //
@@ -350,14 +350,14 @@ func (c *Client) Notarize(req *AttestationRequest, options *NotarizationOptions)
 		options.VerificationContext = ctx
 	}
 
-	err = c.verifyReports(options.VerificationContext, attestations)
+	validAttestations, err := c.verifyReports(options.VerificationContext, attestations)
 	if err != nil {
 		return nil, []error{fmt.Errorf("attestation report verification failed: %w", err)}
 	}
 
 	c.logger.Println("Attestations verified by", getFullAddress("", nil, c.verifier, nil))
 
-	return attestations, nil
+	return validAttestations, nil
 }
 
 type attestationRequestMessage struct {
@@ -413,7 +413,10 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 			reqErrors = append(reqErrors, err)
 		}
 
-		return nil, reqErrors
+		// all requests have failed
+		if len(reqErrors) == numServices {
+			return nil, reqErrors
+		}
 	}
 
 	var result []*AttestationResponse
@@ -428,7 +431,7 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 
 func (c *Client) handleAttestations(attestations []*AttestationResponse, options *NotarizationOptions) error {
 	// can't do time deviation and integrity checks with only one attestation
-	if len(attestations) < 1 {
+	if len(attestations) < 2 {
 		return nil
 	}
 
@@ -468,11 +471,11 @@ type verifyRequest struct {
 	Reports []*AttestationResponse `json:"reports"`
 }
 type verifyResponse struct {
-	Success      bool   `json:"success"`
+	ValidReports []int  `json:"validReports"`
 	ErrorMessage string `json:"errorMessage"`
 }
 
-func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationResponse) error {
+func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationResponse) ([]*AttestationResponse, error) {
 	var wg sync.WaitGroup
 
 	resChan := make(chan *verifyResponse, 1)
@@ -500,16 +503,27 @@ func (c *Client) verifyReports(ctx context.Context, attestations []*AttestationR
 
 	if len(errChan) > 0 {
 		err := <-errChan
-		return err
+		return nil, err
 	}
 
 	result := <-resChan
 
-	if !result.Success {
-		return errors.New(result.ErrorMessage)
+	if len(result.ValidReports) == 0 {
+		return nil, errors.New(result.ErrorMessage)
 	}
 
-	return nil
+	var validAttestations []*AttestationResponse
+	for i, attestation := range attestations {
+		if slices.Contains(result.ValidReports, i) {
+			validAttestations = append(validAttestations, attestation)
+		}
+	}
+
+	if len(validAttestations) == 0 {
+		return nil, errors.New("no valid attestations found")
+	}
+
+	return validAttestations, nil
 }
 
 // TestSelector response, which contains information for debugging selectors for extracting AttestationData for calling Notarize.
@@ -592,7 +606,10 @@ func (c *Client) TestSelector(req *AttestationRequest, options *TestSelectorOpti
 			reqErrors = append(reqErrors, err)
 		}
 
-		return nil, reqErrors
+		// all requests have failed
+		if len(reqErrors) == numServices {
+			return nil, reqErrors
+		}
 	}
 
 	var result []*TestSelectorResponse
