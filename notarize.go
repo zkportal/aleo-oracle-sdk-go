@@ -422,8 +422,10 @@ func (c *Client) createAttestation(ctx context.Context, req *AttestationRequest)
 	var result []*AttestationResponse
 	for enclaveUrl, resChan := range resChanMap {
 		resp := <-resChan
-		resp.EnclaveUrl = enclaveUrl
-		result = append(result, resp)
+		if resp != nil {
+			resp.EnclaveUrl = enclaveUrl
+			result = append(result, resp)
+		}
 	}
 
 	return result, nil
@@ -438,8 +440,8 @@ func (c *Client) handleAttestations(attestations []*AttestationResponse, options
 	// do some basic client side validation
 	firstAttestation := attestations[0]
 
-	attestationTimestamps := make([]int64, len(attestations))
-	attestationTimestamps[0] = firstAttestation.Timestamp
+	attestationTimestamps := make([]int64, 0, len(attestations))
+	attestationTimestamps = append(attestationTimestamps, firstAttestation.Timestamp)
 
 	for _, att := range attestations[1:] {
 		if options.DataShouldMatch && att.AttestationData != firstAttestation.AttestationData {
