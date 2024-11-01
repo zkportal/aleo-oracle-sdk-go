@@ -25,6 +25,13 @@ var (
 			ApiPrefix: "",
 			Resolve:   true,
 		},
+		{
+			Address:   "nitro.aleooracle.xyz",
+			Port:      443,
+			HTTPS:     true,
+			ApiPrefix: "",
+			Resolve:   true,
+		},
 	}
 
 	DEFAULT_VERIFICATION_BACKEND = &CustomBackendConfig{
