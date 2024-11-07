@@ -5,7 +5,7 @@
 // Oracles provide a way for the decentralized Web3 ecosystem to access existing data sources, legacy systems, and advanced computations, but come with a downside
 // of having to trust the oracle owner. Unlike them, Aleo Oracle is trustless and doesn't have an owner, thus solving the problem.
 //
-// This SDK can be used with an Aleo oracle contract to expose data to Aleo blockchain in a trustless way using [TEEs (Trusted Execution Environment)] like [Intel SGX] and [Aleo's SnarkVM].
+// This SDK can be used with an Aleo oracle contract to expose data to Aleo blockchain in a trustless way using [TEEs (Trusted Execution Environment)] like [Intel SGX], [AWS Nitro], and [Aleo's SnarkVM].
 //
 // Most of the heavy lifting is done on the backend side, where one or more instances of [notarization backends] create
 // attestations on requested data, which can be [verified locally and remotely], and in a contract.
@@ -30,6 +30,7 @@
 //
 // [TEEs (Trusted Execution Environment)]: https://en.wikipedia.org/wiki/Trusted_execution_environment
 // [Intel SGX]: https://www.intel.com/content/www/us/en/architecture-and-technology/software-guard-extensions.html
+// [AWS Nitro]: https://aws.amazon.com/ec2/nitro/
 // [Aleo's SnarkVM]: https://developer.aleo.org/aleo
 // [notarization backends]: https://github.com/summitto/oracle-notarization-backend
 // [verified locally and remotely]: https://github.com/summitto/oracle-verification-backend
@@ -278,7 +279,7 @@ type AttestationResponse struct {
 	// Attestation Report in Base64 encoding, created by the Trusted Execution Environment using the extracted data.
 	AttestationReport string `json:"attestationReport"`
 
-	// Which TEE produced the attestation report. Only Intel SGX is supported at the moment with possibility to have more later.
+	// Which TEE produced the attestation report. Only Intel SGX and AWS Nitro are supported at the moment.
 	ReportType string `json:"reportType"`
 
 	// Data extracted from the attestation target's response using the provided selector. The data is always a string, as seen in the raw HTTP response.
