@@ -177,8 +177,10 @@ func executeRequestInternal[ResponseType interface{}](ctx context.Context, req *
 	// check if cancelled
 	select {
 	case <-ctx.Done():
-	case resChan <- resp:
+	default:
 	}
+
+	resChan <- resp
 }
 
 // creates an HTTP request of provided method (can be only GET or POST) to the provided URL, with an optional body of RequestType,
@@ -214,7 +216,7 @@ func executeRequest[RequestType interface{}, ResponseType interface{}](path stri
 	// the infrastructure uses SNI for routing. since we looked up the hostname
 	// and we want to send requests to all IPs, we have to use the addresses for request.
 	// this also means we have to set the servername in the TLS config for SNI.
-	transportRaw := transport.(*http.Transport)
+	transportRaw := *(transport.(*http.Transport))
 	if transportRaw.TLSClientConfig == nil {
 		transportRaw.TLSClientConfig = &tls.Config{}
 	}
@@ -228,7 +230,7 @@ func executeRequest[RequestType interface{}, ResponseType interface{}](path stri
 	// This wasn't relevant when resolving was disabled for the verifier.
 	transportRaw.DisableKeepAlives = true
 
-	transport = transportRaw
+	transport = &transportRaw
 
 	// common client to use for all resolved IP addresses. it has the SNI already configured
 	client := &http.Client{

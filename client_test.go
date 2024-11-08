@@ -8,23 +8,8 @@ import (
 )
 
 func Example() {
-	// First, we configure the client
-	config := &ClientConfig{
-		NotarizerConfig: &CustomBackendConfig{
-			Address: "sgx.aleooracle.xyz",
-			HTTPS:   true,
-			Resolve: true,
-		},
-		VerifierConfig: &CustomBackendConfig{
-			Address: "verifier.aleooracle.xyz",
-			HTTPS:   true,
-			Resolve: true,
-		},
-		Logger: log.Default(),
-	}
-
 	// Create a client
-	client, err := NewClient(config)
+	client, err := NewClient(nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -88,13 +73,14 @@ func Example() {
 	}
 
 	// The URL was notarized, the extracted result was attested by the enclaves, enclave signatures were verified by the verifier, you can now use the data
-	log.Println()
-	log.Println("Data extracted from the URL using the selector:", attestations[0].AttestationData)
-	log.Println()
-
-	log.Println()
-	log.Println("Attestation response prepared for using in an Aleo contract:", attestations[0].OracleData.UserData)
-	log.Println()
+	log.Println("Number of attestations", len(attestations))
+	for _, at := range attestations {
+		log.Println("Attested with", at.ReportType)
+		log.Println("Data extracted from the URL using the selector:", at.AttestationData)
+		log.Println()
+		log.Println("Attestation response prepared for using in an Aleo contract:", at.OracleData.UserData)
+		log.Println()
+	}
 
 	// Output:
 }
